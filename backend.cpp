@@ -376,6 +376,21 @@ int main() {
             cout << "Shortest time: " << distances[end] << " minutes" << endl;
             vector<int> path = reconstructPath(start, end, previous);
 
+            // Remove duplicate stations with the same name
+            vector<int> unique_path;
+            vector<string> seen_stations;
+            for (int idx : path) {
+                string station_name = stations[idx].name;
+                // If we haven't seen this station name before, add it
+                if (find(seen_stations.begin(), seen_stations.end(), station_name) == seen_stations.end()) {
+                    unique_path.push_back(idx);
+                    seen_stations.push_back(station_name);
+                }
+            }
+
+            // Use the unique path for display
+            path = unique_path;
+
             // Prepare lines info for each station in the path
             vector<vector<string>> path_lines;
             for (int idx : path) {
@@ -383,20 +398,45 @@ int main() {
             }
 
             cout << "Path: ";
-            for (int i = 0; i < path.size(); i++) {
-                int station = path[i];
-                cout << stations[station].name << " [";
-
-                // Show lines for this station
+            // Determine the initial line to use
+            string current_line = path_lines[0][0];
+            // Try to pick a line that continues to the next station
+            if (path.size() > 1) {
+                for (const string& l : path_lines[0]) {
+                    if (find(path_lines[1].begin(), path_lines[1].end(), l) != path_lines[1].end()) {
+                        current_line = l;
+                        break;
+                    }
+                }
+            }
+            cout << stations[path[0]].name << " [";
+            for (size_t l = 0; l < path_lines[0].size(); ++l) {
+                cout << path_lines[0][l];
+                if (l < path_lines[0].size() - 1) cout << "/";
+            }
+            cout << "]";
+            for (int i = 1; i < path.size(); i++) {
+                // Check if current_line is present at this station
+                if (find(path_lines[i].begin(), path_lines[i].end(), current_line) == path_lines[i].end()) {
+                    // Need to change line
+                    // Find a new line that is present in both previous and current station
+                    string new_line = path_lines[i][0];
+                    for (const string& l : path_lines[i]) {
+                        if (find(path_lines[i-1].begin(), path_lines[i-1].end(), l) != path_lines[i-1].end()) {
+                            new_line = l;
+                            break;
+                        }
+                    }
+                    // Print the change at the previous station (i-1)
+                    cout << "\n  Change lines from " << current_line << " to " << new_line << " at " << stations[path[i-1]].name;
+                    current_line = new_line;
+                }
+                cout << " -> " << stations[path[i]].name << " [";
                 for (size_t l = 0; l < path_lines[i].size(); ++l) {
                     cout << path_lines[i][l];
                     if (l < path_lines[i].size() - 1) cout << "/";
                 }
                 cout << "]";
-
-                if (i < path.size() - 1) {
-                    cout << " -> ";
-                }
             }
             cout << endl;
         }
